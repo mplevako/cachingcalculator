@@ -1,41 +1,14 @@
 package coding.task.cachingcalculator;
 
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import java.math.BigDecimal;
-
-import static java.math.BigDecimal.*;
+import static java.math.BigDecimal.TEN;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 
-@SpringBootTest
 @ActiveProfiles("test")
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = CachingCalculatorApplication.class)
-public class CalculatorServiceControllerTests{
-    @Autowired private ApplicationContext context;
-
-    private WebTestClient.RequestHeadersUriSpec getSpec;
-
-    private final BigDecimal maxDouble = new BigDecimal(Double.MAX_VALUE);
-    private final BigDecimal maxDoubleTo10 = maxDouble.pow(10);
-    private final BigDecimal tenTimesMaxDouble = maxDouble.multiply(TEN);
-    private final BigDecimal tenTimesMaxDoubleMinusOne = tenTimesMaxDouble.subtract(ONE);
-
-    @Before
-    public void setup() {
-        WebTestClient webClient=WebTestClient.bindToApplicationContext(context).configureClient().build();
-        getSpec = webClient.get();
-    }
-
+public class CalculatorServiceControllerTests extends CalculatorServiceTests{
     @Test
     public void testDoubleAddition(){
         WebTestClient.ResponseSpec responseSpec = getSpec.uri("/add/0/0").accept(APPLICATION_JSON_UTF8).exchange();
@@ -90,7 +63,7 @@ public class CalculatorServiceControllerTests{
 
     @Test
     public void testDoubleMultiplication(){
-        WebTestClient.ResponseSpec responseSpec = getSpec.uri(String.format("/multiply/0/0")).accept(APPLICATION_JSON_UTF8).exchange();
+        WebTestClient.ResponseSpec responseSpec = getSpec.uri("/multiply/0/0").accept(APPLICATION_JSON_UTF8).exchange();
         WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("0");
 
@@ -131,16 +104,20 @@ public class CalculatorServiceControllerTests{
 
     @Test
     public void testDivisionByZero(){
-        WebTestClient.ResponseSpec responseSpec = getSpec.uri(String.format("/divide/%s/%s", ONE, ZERO)).accept(APPLICATION_JSON_UTF8).exchange();
+        WebTestClient.ResponseSpec responseSpec = getSpec.uri("/divide/1/0").accept(APPLICATION_JSON_UTF8).exchange();
         WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
-        json.jsonPath("$.error").isEqualTo("Division by zero");
+        json.jsonPath("$.errors").isEqualTo("Division by zero");
+
+        responseSpec = getSpec.uri("/divide/0/0").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors").isEqualTo("Division undefined");
     }
 
     @Test
     public void testNonRepresentableDivisionResult(){
         WebTestClient.ResponseSpec responseSpec = getSpec.uri("/divide/2/3").accept(APPLICATION_JSON_UTF8).exchange();
         WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
-        json.jsonPath("$.error").isEqualTo("Non-terminating decimal expansion; no exact representable decimal result.");
+        json.jsonPath("$.errors").isEqualTo("Non-terminating decimal expansion; no exact representable decimal result.");
     }
 
     @Test
@@ -166,33 +143,65 @@ public class CalculatorServiceControllerTests{
     public void testErroneousPow(){
         WebTestClient.ResponseSpec responseSpec = getSpec.uri("/pow/4/0.5").accept(APPLICATION_JSON_UTF8).exchange();
         WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
-        json.jsonPath("$.error").isEqualTo("For input string: \"0.5\"");
+        json.jsonPath("$.errors").isEqualTo("Exponent must fit into [0,999999999]");
 
         responseSpec = getSpec.uri("/pow/1/1000000000").accept(APPLICATION_JSON_UTF8).exchange();
         json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
-        json.jsonPath("$.error").isEqualTo("Invalid operation");
+        json.jsonPath("$.errors").isEqualTo("Exponent must fit into [0,999999999]");
+
+        responseSpec = getSpec.uri("/pow/0/-1").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors").isEqualTo("Exponent must fit into [0,999999999]");
     }
 
     @Test
-    public void testDifferentNumberNotations(){
-        WebTestClient.ResponseSpec responseSpec = getSpec.uri(String.format("/add/0.1/1e1")).accept(APPLICATION_JSON_UTF8).exchange();
+    public void testValidNumberFormatsAreAccepted(){
+        WebTestClient.ResponseSpec responseSpec = getSpec.uri("/add/0.1/1e1").accept(APPLICATION_JSON_UTF8).exchange();
         WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("10.1");
 
-        responseSpec = getSpec.uri(String.format("/subtract/11.1/1e1")).accept(APPLICATION_JSON_UTF8).exchange();
+        responseSpec = getSpec.uri("/subtract/11.1/1e1").accept(APPLICATION_JSON_UTF8).exchange();
         json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("1.1");
 
-        responseSpec = getSpec.uri(String.format("/multiply/1e1/1e-1")).accept(APPLICATION_JSON_UTF8).exchange();
+        responseSpec = getSpec.uri("/multiply/1e1/1e-1").accept(APPLICATION_JSON_UTF8).exchange();
         json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("1");
 
-        responseSpec = getSpec.uri(String.format("/divide/11.1/1e1")).accept(APPLICATION_JSON_UTF8).exchange();
+        responseSpec = getSpec.uri("/divide/11.1/1e1").accept(APPLICATION_JSON_UTF8).exchange();
         json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("1.11");
 
-        responseSpec = getSpec.uri(String.format("/pow/3.14/2")).accept(APPLICATION_JSON_UTF8).exchange();
+        responseSpec = getSpec.uri("/pow/3.14/2").accept(APPLICATION_JSON_UTF8).exchange();
         json = responseSpec.expectStatus().isOk().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
         json.jsonPath("$.result").isEqualTo("9.8596");
+    }
+
+    @Test
+    public void testInvalidNumberFormatsAreReported(){
+        WebTestClient.ResponseSpec responseSpec = getSpec.uri("/add/apple/orange").accept(APPLICATION_JSON_UTF8).exchange();
+        WebTestClient.BodyContentSpec json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors.[0]").isEqualTo("Could not parse apple").
+             jsonPath("$.errors.[1]").isEqualTo("Could not parse orange");
+
+        responseSpec = getSpec.uri("/subtract/*/!").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors.[0]").isEqualTo("Could not parse *").
+             jsonPath("$.errors.[1]").isEqualTo("Could not parse !");
+
+        responseSpec = getSpec.uri("/multiply/./-").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors.[0]").isEqualTo("Could not parse .").
+             jsonPath("$.errors.[1]").isEqualTo("Could not parse -");
+
+        responseSpec = getSpec.uri("/divide/1.1.1/1_000_000").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors.[0]").isEqualTo("Could not parse 1.1.1").
+             jsonPath("$.errors.[1]").isEqualTo("Could not parse 1_000_000");
+
+        responseSpec = getSpec.uri("/pow/pi/squared").accept(APPLICATION_JSON_UTF8).exchange();
+        json = responseSpec.expectStatus().isBadRequest().expectHeader().contentType(APPLICATION_JSON_UTF8).expectBody();
+        json.jsonPath("$.errors.[0]").isEqualTo("Could not parse pi").
+             jsonPath("$.errors.[1]").isEqualTo("Exponent must fit into [0,999999999]");
     }
 }
