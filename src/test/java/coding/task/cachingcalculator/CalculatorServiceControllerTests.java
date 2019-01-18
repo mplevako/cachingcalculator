@@ -1,12 +1,15 @@
 package coding.task.cachingcalculator;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static java.math.BigDecimal.TEN;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 
+@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 public class CalculatorServiceControllerTests extends CalculatorServiceTests{
     @Test

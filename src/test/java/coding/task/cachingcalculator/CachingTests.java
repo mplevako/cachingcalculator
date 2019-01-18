@@ -2,6 +2,7 @@ package coding.task.cachingcalculator;
 
 import coding.task.cachingcalculator.service.CalculatorService;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +26,7 @@ class CachingCalculationServiceTestConfiguration{
     @Bean @Primary public CalculatorService<BigDecimal> calculatorService(){ return Mockito.mock(CalculatorService.class); }
 }
 
+@RunWith(SpringRunner.class)
 @ActiveProfiles("cachingtest")
 public class CachingTests extends CalculatorServiceTests{
     @Autowired private CalculatorService<BigDecimal> calculatorService;

@@ -1,12 +1,10 @@
 package coding.task.cachingcalculator;
 
 import org.junit.Before;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
@@ -15,7 +13,6 @@ import java.math.BigDecimal;
 import static java.math.BigDecimal.*;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ContextConfiguration(classes = CachingCalculatorApplication.class)
 public class CalculatorServiceTests{
     @Autowired private ApplicationContext context;

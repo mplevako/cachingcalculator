@@ -12,7 +12,7 @@
     <artifactId>cachingcalculator</artifactId>
     <version>1.0.0</version>
     <name>cachingcalculator</name>
-    <description>A simple RESTful calculator service that caches the results of its computations</description>
+    <description>A reactive arbitrary-precision RESTful calculator service that caches the results of its computations</description>
 
     <properties>
         <java.version>1.8</java.version>
